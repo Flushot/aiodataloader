@@ -8,6 +8,8 @@ from asyncio import (
     iscoroutine,
     iscoroutinefunction,
 )
+from asyncio.exceptions import InvalidStateError
+import logging
 from collections import namedtuple
 from functools import partial
 from typing import (
@@ -45,6 +47,8 @@ def iscoroutinefunctionorpartial(
 
 
 Loader = namedtuple("Loader", "key,future")
+
+LOG = logging.getLogger(__name__)
 
 
 class DataLoader(Generic[KeyT, ReturnT]):
@@ -313,4 +317,7 @@ def failed_dispatch(
     """
     for ql in queue:
         loader.clear(ql.key)
-        ql.future.set_exception(error)
+        try:
+            ql.future.set_exception(error)
+        except InvalidStateError as ex:
+            LOG.info(f'{ex.__class__.__name__} error occurred while dispatching: {ex}')
